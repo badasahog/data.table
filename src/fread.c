@@ -1673,7 +1673,7 @@ int freadMain(freadMainArgs _args) {
     // unusual
     if (verbose) DTPRINT(_("  sep='\\n' passed in meaning read lines as single character column\n"));
     sep = 127;     // ASCII DEL: a character different from \r, \n and \0 that isn't in the data
-    whiteChar = 0;
+    whiteChar = '\0';
     quoteRule = 3; // Ignore quoting
     ncol = 1;
     int thisLine=0;
