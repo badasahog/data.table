@@ -2481,24 +2481,27 @@ int freadMain(freadMainArgs _args) {
                 if (*tch==quote && quote) { quoted=true; tch++; }
               } // else Field() handles NA inside it unlike other processors e.g. ,, is interpreted as "" or NA depending on option read inside Field()
               fun[abs(thisType)](&fctx);
+              
+              bool typeBump = false;
               if (quoted) {   // quoted was only set to true with '&& quote' above (=> quote!='\0' now)
-                if (*tch==quote) tch++;
-                else goto typebump;
+                  if (*tch == quote) tch++;
+                  else typeBump = true;
               }
-              skip_white(&tch);
-              if (end_of_field(tch)) {
-                if (sep==' ' && *tch==' ') {
-                  while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
-                  if (tch[1]=='\r' || tch[1]=='\n' || tch+1==eof) tch++;
+
+              if (!typeBump) {
+                skip_white(&tch);
+                if (end_of_field(tch)) {
+                  if (sep == ' ' && *tch == ' ') {
+                    while (tch[1] == ' ') tch++;  // multiple space considered one sep so move to last
+                    if (tch[1] == '\r' || tch[1] == '\n' || tch + 1 == eof) tch++;
+                  }
+                  break;
                 }
-                break;
               }
-    
               // guess is insufficient out-of-sample, type is changed to negative sign and then bumped. Continue to
               // check that the new type is sufficient for the rest of the column (and any other columns also in out-of-sample bump status) to be
               // sure a single re-read will definitely work.
-              typebump:
-              while (++absType<CT_STRING && disabled_parsers[absType]) {};
+              while (++absType<CT_STRING && disabled_parsers[absType]);
               thisType = -absType;
               tch = fieldStart;
             }
@@ -2646,13 +2649,12 @@ int freadMain(freadMainArgs _args) {
       dropFill = (int *)malloc((size_t)ndropFill * sizeof(int));
       if (!dropFill)
         STOP(_("Failed to allocate %d bytes for '%s'."), (int)(ndropFill * sizeof(int)), "dropFill"); // # nocov
-      int i=0;
-      for (int j=max_col; j<ncol; ++j) {
+      for (int i=0,j=max_col;j<ncol;++i,++j) {
         type[j] = CT_DROP;
         size[j] = 0;
         ndrop++;
         nNonStringCols--;
-        dropFill[i++] = j;
+        dropFill[i] = j;
       }
       dropFilledCols(dropFill, ndropFill);
     }
@@ -2696,8 +2698,10 @@ int freadMain(freadMainArgs _args) {
       
       // if nTypeBump>0, not-bumped columns are about to be assigned parse type -CT_STRING for the reread, so we have to count
       // parse types now (for log). We can't count final column types afterwards because many parse types map to the same column type.
-      for (int i=0; i<NUMTYPE; i++) typeCounts[i] = 0;
-      for (int i=0; i<ncol; i++) typeCounts[ abs(type[i]) ]++;
+      if (verbose) {
+        memset(typeCounts, 0, sizeof(typeCounts));
+        for (int i = 0; i < ncol; i++) typeCounts[abs(type[i])]++;
+      }
       
       if (nTypeBump==0)break;
       
