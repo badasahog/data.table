@@ -1194,7 +1194,7 @@ static reader_fun_t fun[NUMTYPE] = {
 
 static int disabled_parsers[NUMTYPE] = {0};
 
-static int detect_types( const char **pch, int8_t type[], int ncol, bool *bumped) {
+static int detect_types(const char **pch, int ncol, bool *bumped) {
   // used in sampling column types and whether column names are present
   // test at most ncol fields. If there are fewer fields, the data read step later
   // will error (if fill==false) when the line number is known, so we don't need to handle that here.
@@ -1879,8 +1879,8 @@ int freadMain(freadMainArgs _args) {
   if (verbose) DTPRINT(_("[07] Detect column types, dec, good nrow estimate and whether first row is column names\n"));
   if (verbose && args.header!=NA_BOOL8) DTPRINT(_("  'header' changed by user from 'auto' to %s\n"), args.header?"true":"false");
 
-  type =    malloc(sizeof(*type) * (size_t)ncol);
-  tmpType = malloc(sizeof(*tmpType) * (size_t)ncol);  // used i) in sampling to not stop on errors when bad jump point and ii) when accepting user overrides
+  type =    malloc(sizeof(*type) * ncol);
+  tmpType = malloc(sizeof(*tmpType) * ncol);  // used i) in sampling to not stop on errors when bad jump point and ii) when accepting user overrides
   if (!type || !tmpType) {
     free(type); free(tmpType); // # nocov
     STOP(_("Failed to allocate 2 x %d bytes for type and tmpType: %s"), ncol, strerror(errno)); // # nocov
@@ -1950,7 +1950,7 @@ int freadMain(freadMainArgs _args) {
 
     while(ch<eof && jumpLine++<jumpLines) {
       const char *lineStart = ch;
-      int thisNcol = detect_types(&ch, tmpType, ncol, &bumped);
+      int thisNcol = detect_types(&ch, ncol, &bumped);
       if (thisNcol==0 && skipEmptyLines) {
         if (eol(&ch)) ch++;
         continue;
@@ -2005,7 +2005,7 @@ int freadMain(freadMainArgs _args) {
     if (dec == '\0') { // in files without jumps, dec could still be undecided
       linesForDecDot = 0;
     }
-    detect_types(&ch, tmpType, ncol, &bumped);
+    detect_types(&ch, ncol, &bumped);
     if (dec == '\0') {
       dec = linesForDecDot < 0 ? ',' : '.';
       if (verbose) {
@@ -2196,9 +2196,9 @@ int freadMain(freadMainArgs _args) {
   rowSize1 = 0;
   rowSize4 = 0;
   rowSize8 = 0;
-  size = malloc(sizeof(*size) * (size_t)ncol);  // TODO: remove size[] when we implement Pasha's idea to += size inside processor
+  size = malloc(sizeof(*size) * ncol);  // TODO: remove size[] when we implement Pasha's idea to += size inside processor
   if (!size)
-    STOP(_("Failed to allocate %d bytes for '%s': %s"), (int)(sizeof(*size) * (size_t)ncol), "size", strerror(errno)); // # nocov
+    STOP(_("Failed to allocate %d bytes for '%s': %s"), (int)(sizeof(*size) * ncol), "size", strerror(errno)); // # nocov
   nStringCols = 0;
   nNonStringCols = 0;
   for (int j=0; j<ncol; j++) {
@@ -2637,9 +2637,9 @@ int freadMain(freadMainArgs _args) {
       DTPRINT(_("  Provided number of fill columns: %d but only found %d\n"), ncol, max_col);
       DTPRINT(_("  Dropping %d overallocated columns\n"), ndropFill);
     }
-    dropFill = malloc(sizeof(*dropFill) * (size_t)ndropFill);
+    dropFill = malloc(sizeof(*dropFill) * ndropFill);
     if (!dropFill)
-      STOP(_("Failed to allocate %d bytes for '%s'."), (int)(ndropFill * sizeof(int)), "dropFill"); // # nocov
+      STOP(_("Failed to allocate %d bytes for '%s'."), (int)(sizeof(*dropFill) * ndropFill), "dropFill"); // # nocov
     int i=0;
     for (int j=max_col; j<ncol; ++j) {
       type[j] = CT_DROP;
