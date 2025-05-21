@@ -352,11 +352,11 @@ SEXP hasOpenMP(void) {
 
 // # nocov end
 
-extern int *_Last_updated;  // assign.c
+extern int *Last_updated_;  // assign.c
 
 SEXP initLastUpdated(SEXP var) {
   if (!isInteger(var) || LENGTH(var)!=1) error(_(".Last.updated in namespace is not a length 1 integer"));
-  _Last_updated = INTEGER(var);
+  Last_updated_ = INTEGER(var);
   return R_NilValue;
 }
 
